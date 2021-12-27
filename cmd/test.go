@@ -60,8 +60,7 @@ func main() {
 	}
 
 	tmp := data.BuildRawTree()
-	fmt.Println(tmp)
-	res := utils.BuildNestedTree(tmp, 1)
+	res := utils.Do(tmp, tmp[0].Depth)
 	for _, t := range res {
 		fmt.Println(t)
 	}

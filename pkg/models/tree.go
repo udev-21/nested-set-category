@@ -1,10 +1,17 @@
 package models
 
-import "sort"
+import (
+	"fmt"
+	"sort"
+)
 
 type Tree struct {
 	RawTree
 	Children []Tree
+}
+
+func (t Tree) String() string {
+	return fmt.Sprintf("name: %s, depth: %d, children: %d", t.Name, t.Depth, len(t.Children))
 }
 
 func (node *Tree) BuildRawTree() []RawTree {
@@ -35,7 +42,6 @@ func (node *Tree) _BuildRawTree(left, depth int64) []RawTree {
 	if len(res) > 0 {
 		parent.Right = res[len(res)-1].Right + 1
 	}
-	res = append(res, parent)
 
-	return res
+	return append(res, parent)
 }
