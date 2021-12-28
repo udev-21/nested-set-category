@@ -1,67 +1,34 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/udev-21/nested-set-go/pkg/models"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/udev-21/nested-set-go/internal/repository/mysql"
 	"github.com/udev-21/nested-set-go/pkg/utils"
+
+	"github.com/jmoiron/sqlx"
 )
 
 func main() {
-	data := models.Tree{
-		RawTree: models.RawTree{
-			Name:  "root",
-			Depth: 1,
-		},
-		Children: []models.Tree{
-			{
-				RawTree: models.RawTree{
-					Name:  "child1",
-					Depth: 2,
-				},
-				Children: []models.Tree{
-					{
-						RawTree: models.RawTree{
-							Name:  "child1.1",
-							Depth: 3,
-						},
-					},
-					{
-						RawTree: models.RawTree{
-							Name:  "child1.2",
-							Depth: 3,
-						},
-						Children: []models.Tree{
-							{
-								RawTree: models.RawTree{
-									Name:  "child1.2.1",
-									Depth: 4,
-								},
-							},
-						},
-					},
-				},
-			},
-			{
-				RawTree: models.RawTree{
-					Name:  "child2",
-					Depth: 2,
-				},
-				Children: []models.Tree{
-					{
-						RawTree: models.RawTree{
-							Name:  "child2.1",
-							Depth: 3,
-						},
-					},
-				},
-			},
-		},
+	db := ConnectDB()
+	treeRepo := mysql.NewCategoryRepo(db)
+	if err := treeRepo.RecalculateDepth(context.Background()); err != nil {
+		fmt.Println("RecalculateDepth: ", err.Error())
 	}
 
-	tmp := data.BuildRawTree()
-	res := utils.Do(tmp, tmp[0].Depth)
-	for _, t := range res {
-		fmt.Println(t)
-	}
+	node, _ := treeRepo.FetchByID(context.Background(), 1)
+	children, _ := treeRepo.FetchAllChildren(context.Background(), node)
+	fmt.Println(utils.PrintNestedCategory(utils.BuildNestedCategory(children), ""))
+	defer db.Close()
+}
+
+func ConnectDB() *sqlx.DB {
+	user := "gav"
+	pass := "Sok0l"
+	host := "127.0.0.1"
+	port := "3366"
+	db := "parsers"
+	return sqlx.MustConnect("mysql", user+":"+pass+"@("+host+":"+port+")/"+db+"?charset=utf8mb4,utf8&parseTime=true")
 }
