@@ -21,5 +21,5 @@ type Category interface {
 	GetAllRootIds(ctx context.Context) ([]string, error)                                                           //done
 	MoveAfter(ctx context.Context, afterNode, target models.Category) error                                        //done
 	MoveBefore(ctx context.Context, beforeNode, target models.Category) error                                      //done
-	MoveInto(ctx context.Context, beforeNode, target models.Category) error
+	MoveInto(ctx context.Context, parentNode, target models.Category) error                                        //done
 }

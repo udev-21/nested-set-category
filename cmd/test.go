@@ -67,17 +67,27 @@ func test(db *sqlx.DB, treeRepo *mysql.Category) {
 }
 
 func testMoveBefore(db *sqlx.DB, treeRepo *mysql.Category) {
-	target, _ := treeRepo.FetchByID(context.Background(), 11)
+	target, _ := treeRepo.FetchByID(context.Background(), 2)
 	beforeNode, err := treeRepo.FetchByID(context.Background(), 10)
 	err = treeRepo.MoveBefore(context.Background(), beforeNode, target)
 	if err != nil {
 		panic(err)
 	}
 }
+
 func testMoveAfter(db *sqlx.DB, treeRepo *mysql.Category) {
 	target, _ := treeRepo.FetchByID(context.Background(), 11)
 	afterNode, err := treeRepo.FetchByID(context.Background(), 10)
 	err = treeRepo.MoveAfter(context.Background(), afterNode, target)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func testMoveInto(db *sqlx.DB, treeRepo *mysql.Category) {
+	target, _ := treeRepo.FetchByID(context.Background(), 6)
+	parentNode, err := treeRepo.FetchByID(context.Background(), 11)
+	err = treeRepo.MoveInto(context.Background(), parentNode, target)
 	if err != nil {
 		panic(err)
 	}
@@ -90,8 +100,9 @@ func main() {
 		fmt.Println("RecalculateDepth: ", err.Error())
 	}
 	// test(db, treeRepo)
-	// testMoveBefore(db, treeRepo)
-	testMoveAfter(db, treeRepo)
+	testMoveBefore(db, treeRepo)
+	// testMoveAfter(db, treeRepo)
+	// testMoveInto(db, treeRepo)
 	parent, _ := treeRepo.FetchByID(context.Background(), 1)
 	childs, _ := treeRepo.FetchAllChildren(context.Background(), parent)
 	fmt.Println(utils.PrintNestedCategory(utils.BuildNestedCategory(childs), ""))

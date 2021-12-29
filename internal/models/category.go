@@ -31,6 +31,10 @@ func (node Category) IsRoot() bool {
 	return node.Left == 1
 }
 
+func (node Category) IsLeaf() bool {
+	return node.Left+1 == node.Right
+}
+
 func (node *Category) _BuildRaw(left, depth int64, rootId string) []Category {
 	res := make([]Category, 0)
 

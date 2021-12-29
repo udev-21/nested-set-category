@@ -224,6 +224,8 @@ func (r *Category) MoveAfter(ctx context.Context, afterNode, target models.Categ
 		return fmt.Errorf("after node must not be root node")
 	} else if afterNode.RootID != target.RootID {
 		return fmt.Errorf("afterNode and target must be common root_id")
+	} else if target.Left <= afterNode.Left && target.Right >= afterNode.Right {
+		return fmt.Errorf("parentNode must not be child of target")
 	}
 
 	width := target.Right - target.Left + 1
@@ -295,6 +297,8 @@ func (r *Category) MoveBefore(ctx context.Context, beforeNode, target models.Cat
 		return fmt.Errorf("after node must not be root node")
 	} else if beforeNode.RootID != target.RootID {
 		return fmt.Errorf("beforeNode and target must be common root_id")
+	} else if target.Left <= beforeNode.Left && target.Right >= beforeNode.Right {
+		return fmt.Errorf("parentNode must not be child of target")
 	}
 
 	width := target.Right - target.Left + 1
@@ -351,8 +355,67 @@ func (r *Category) MoveBefore(ctx context.Context, beforeNode, target models.Cat
 	return tx.Commit()
 }
 
-func (r *Category) MoveInto(ctx context.Context, beforeNode, target models.Category) error {
-	return nil
+func (r *Category) MoveInto(ctx context.Context, parentNode, target models.Category) error {
+	if err := r.db.Ping(); err != nil {
+		return err
+	} else if parentNode.RootID != target.RootID {
+		return fmt.Errorf("parentNode and target must be common root_id")
+	} else if target.Left <= parentNode.Left && target.Right >= parentNode.Right {
+		return fmt.Errorf("parentNode must not be child of target")
+	}
+
+	if parentNode.IsLeaf() {
+		width := target.Right - target.Left + 1
+		tx := r.db.MustBeginTx(ctx, nil)
+		_, err := tx.ExecContext(ctx, "SELECT GROUP_CONCAT(category_id) INTO @tmpIds FROM category WHERE lft >= ? AND rgt <= ? AND root_id = ?", target.Left, target.Right, target.RootID)
+		if err != nil {
+			return err
+		}
+
+		// UPDATE category SET lft = lft - @myWidth WHERE lft > @myRgt AND NOT FIND_IN_SET(category_id, @tmpIds) ;
+		_, err = tx.ExecContext(ctx, "UPDATE category SET lft = lft - ? WHERE lft > ? AND NOT FIND_IN_SET(category_id, @tmpIds) AND root_id = ?", width, target.Right, target.RootID)
+		if err != nil {
+			return err
+		}
+		// UPDATE category SET rgt = rgt - @myWidth WHERE rgt > @myRgt AND NOT FIND_IN_SET(category_id, @tmpIds) ;
+		_, err = tx.ExecContext(ctx, "UPDATE category SET rgt = rgt - ? WHERE rgt > ? AND NOT FIND_IN_SET(category_id, @tmpIds) AND root_id = ?", width, target.Right, target.RootID)
+		if err != nil {
+			return err
+		}
+		err = tx.GetContext(ctx, &parentNode, "SELECT * FROM category WHERE category_id = ?", parentNode.ID)
+		if err != nil {
+			return err
+		}
+
+		// UPDATE category SET lft = lft + @myWidth WHERE lft > @beforeLeft AND NOT FIND_IN_SET(category_id, @tmpIds) ;
+		_, err = tx.ExecContext(ctx, "UPDATE category SET lft = lft	 + ? WHERE lft > ? AND NOT FIND_IN_SET(category_id, @tmpIds) AND root_id = ?", width, parentNode.Left, target.RootID)
+		if err != nil {
+			return err
+		}
+
+		// UPDATE category SET rgt = rgt + @myWidth WHERE rgt > @afterNodeRight AND NOT FIND_IN_SET(category_id, @tmpIds) ;
+		_, err = tx.ExecContext(ctx, "UPDATE category SET rgt = rgt + ? WHERE rgt > ? AND NOT FIND_IN_SET(category_id, @tmpIds) AND root_id = ?", width, parentNode.Left, target.RootID)
+		if err != nil {
+			return err
+		}
+		// SELECT @afterNodeRight - @myLft + 1 INTO @diff;
+		diff := parentNode.Left - target.Left + 1
+
+		diffDepth := parentNode.Depth - target.Depth + 1
+
+		// UPDATE category SET lft = lft + @diff, rgt = rgt + @diff WHERE FIND_IN_SET(category_id, @tmpIds) ;
+		_, err = tx.ExecContext(ctx, "UPDATE category SET lft = lft + ?, rgt = rgt + ?, depth = depth + ? WHERE FIND_IN_SET(category_id, @tmpIds)  AND root_id = ?", diff, diff, diffDepth, target.RootID)
+		if err != nil {
+			return err
+		}
+		return tx.Commit()
+	}
+	children, err := r.FetchAllChildrenWithDepth(ctx, parentNode, 1)
+	if err != nil {
+		return err
+	}
+	afterNode := children[len(children)-1]
+	return r.MoveAfter(ctx, afterNode, target)
 }
 
 func (r *Category) Delete(ctx context.Context, node models.Category) error {
