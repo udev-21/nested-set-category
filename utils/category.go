@@ -2,8 +2,9 @@ package utils
 
 import (
 	"sort"
+	"strconv"
 
-	"github.com/udev-21/nested-set-go/internal/models"
+	"github.com/udev-21/nested-set-go/models"
 )
 
 // BuildNestedCategory builds nestedCategory from nodes that ordered by lft asc
@@ -28,7 +29,7 @@ func BuildRaw(nodes []models.Category) []models.Category {
 func PrintNestedCategory(node []models.Category, prefix string) string {
 	res := ""
 	for _, node := range node {
-		res += prefix + node.Name
+		res += prefix + strconv.Itoa(int(node.ID)) + " " + node.Name + " " + strconv.Itoa(int(node.Left)) + " " + strconv.Itoa(int(node.Right))
 		res += "\n" + PrintNestedCategory(node.Children, prefix+"  ")
 	}
 	return res

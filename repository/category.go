@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/udev-21/nested-set-go/internal/models"
+	"github.com/udev-21/nested-set-go/models"
 )
 
 type Category interface {

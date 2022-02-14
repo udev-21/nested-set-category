@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/udev-21/nested-set-go/internal/models"
-	"github.com/udev-21/nested-set-go/internal/repository"
-	"github.com/udev-21/nested-set-go/internal/utils"
+	"github.com/udev-21/nested-set-go/models"
+	"github.com/udev-21/nested-set-go/repository"
+	"github.com/udev-21/nested-set-go/utils"
 )
 
 type Category struct {

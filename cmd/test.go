@@ -7,6 +7,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/udev-21/nested-set-go/internal/models"
 	"github.com/udev-21/nested-set-go/internal/repository/mysql"
+	"github.com/udev-21/nested-set-go/internal/services"
 	"github.com/udev-21/nested-set-go/internal/utils"
 
 	"github.com/jmoiron/sqlx"
@@ -93,28 +94,65 @@ func testMoveInto(db *sqlx.DB, treeRepo *mysql.Category) {
 	}
 }
 
+type MyAwesomeType struct {
+}
+
+var _ services.NestedSetBehavior = &MyAwesomeType{}
+
+func (t *MyAwesomeType) GetID() int64 {
+	return 1
+}
+func (t *MyAwesomeType) GetLeft() int64 {
+	return 1
+}
+func (t *MyAwesomeType) GetRight() int64 {
+	return 1
+}
+func (t *MyAwesomeType) GetDepth() int64 {
+	return 1
+}
+
+func (t *MyAwesomeType) SetLeft(u int64) error {
+	return nil
+}
+func (t *MyAwesomeType) SetRight(u int64) error {
+	return nil
+}
+func (t *MyAwesomeType) SetDepth(u int64) error {
+	return nil
+}
+
 func main() {
 	db := ConnectDB()
+	defer db.Close()
 	treeRepo := mysql.NewCategoryRepo(db)
 	if err := treeRepo.RecalculateDepth(context.Background()); err != nil {
 		fmt.Println("RecalculateDepth: ", err.Error())
 	}
 	// test(db, treeRepo)
-	testMoveBefore(db, treeRepo)
+	// testMoveBefore(db, treeRepo)
 	// testMoveAfter(db, treeRepo)
 	// testMoveInto(db, treeRepo)
 	parent, _ := treeRepo.FetchByID(context.Background(), 1)
 	childs, _ := treeRepo.FetchAllChildren(context.Background(), parent)
-	fmt.Println(utils.PrintNestedCategory(utils.BuildNestedCategory(childs), ""))
+	fmt.Println(utils.PrintNestedCategory(childs, ""))
+	var nsbchilds = make([]services.NestedSetBehavior, len(childs))
+	for i, v := range childs {
+		nsbchilds[i] = &v
+	}
+
+	tmp := new(services.NestedSet).WithItems(nsbchilds).Validate()
+	fmt.Println(tmp)
+	// fmt.Println(utils.PrintNestedCategory(utils.BuildNestedCategory(childs), ""))
 	return
 
-	node, _ := treeRepo.FetchByID(context.Background(), 1)
-	children, _ := treeRepo.FetchLeafs(context.Background(), node)
-	for _, v := range children {
-		fmt.Println(v)
-	}
-	fmt.Println(utils.PrintNestedCategory(utils.BuildNestedCategory(children), ""))
-	defer db.Close()
+	// node, _ := treeRepo.FetchByID(context.Background(), 1)
+	// children, _ := treeRepo.FetchLeafs(context.Background(), node)
+	// for _, v := range children {
+	// 	fmt.Println(v)
+	// }
+	// fmt.Println(utils.PrintNestedCategory(utils.BuildNestedCategory(children), ""))
+
 }
 
 func ConnectDB() *sqlx.DB {

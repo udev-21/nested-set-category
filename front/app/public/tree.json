@@ -1,0 +1,12 @@
+[
+    {
+        "text": "node1",
+        "left": "1",
+        "right": "2"
+    },
+    {
+        "text": "node2",
+        "left": "3",
+        "right": "4"
+    }
+]
